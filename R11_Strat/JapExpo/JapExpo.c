@@ -42,6 +42,11 @@ enum etat_strategie_t {
     PARTIR_CASE_2,
     PARTIR_CASE_3,
     PARTIR_CASE_4,
+    PARTIR_CASE_5,
+    PARTIR_CASE_6,
+    PION2,
+    VERS_HAUT_1,
+    VERS_HAUT_2,
     SORTIR_CASE,
     EVITEMENT_RECULE,
     TEST_SERVO_1,
@@ -144,7 +149,7 @@ char fin_asser(void);
 #define DEBUG_CC_GAUCHE 0
 #define DEBUG_CC_DROIT 0
 #define DEBUG_CC_AVANT 0
-#define DEBUG_CC_DEUX 0
+#define DEBUG_CC_DEUX 1
 #define DEBUG_WMP 0
 
 
@@ -306,6 +311,7 @@ void main(void){
         * Gestion de la stratégie *
         *                         *
         **************************/
+        GetDonneesServo();
         
         switch (etat_strategie){
         	case INIT :
@@ -389,8 +395,7 @@ void main(void){
 						LED_OK=1;
 						LED_OK1=1;
 						LED_CMUCAM=1;
-						LED_ROUGE=0;
-						LED_BLEUE=0;
+
 						tempo_s=0;
 						SetServoPAv(BAS);
 					}
@@ -442,57 +447,51 @@ void main(void){
 					}else{
 						consigne_angle=-1800000;
 					}
-					etat_asser=0;
-					asser_actif=1;
+					active_asser(ASSER_TOURNE,consigne_angle);
+					tempo_s++;
 				}
-				tempo_s++;
-				if(tempo_s>400){
+				
+				if(fin_asser()){
 					prop_stop();
 					etat_strategie=ALLER_VERS_CASE_1;
-						LED_OK=0;
-						LED_OK1=0;
-						LED_CMUCAM=0;
-
+					LED_OK=0;
+					LED_OK1=0;
+					LED_CMUCAM=0;
 				}
 				break;
 			case ALLER_VERS_CASE_1:
-				tempo_s++;
-				if(tempo_s>100){
-					if(couleur == ROUGE){
-						setCouleur('R');
-					}else{
-						setCouleur('B');
-					}
-					a_lacher =1;
-					etat_cmucam=INIT;
-					cmucam_active=1;
-					etat_strategie=ALLER_VERS_CASE_2;
+				if(couleur == ROUGE){
+					setCouleur('R');
+				}else{
+					setCouleur('B');
 				}
+				etat_cmucam=INIT;
+				cmucam_active=1;
+				etat_strategie=ALLER_VERS_CASE_2;
+
 				break;
 			case ALLER_VERS_CASE_2:
 				if(etat_cmucam==TRACKING){
-					etat_asser = 0;
-					asser_actif=1;
+					active_asser(ASSER_TOURNE,consigne_angle);
 					etat_strategie=ALLER_VERS_CASE_3;
 					tempo_s=0;
 				}
 				break;
 			case ALLER_VERS_CASE_3:
-				tempo_s++;
-				if(tempo_s>50){
-					GetDonneesServo();
-					LED_OK=1;
-					LED_OK1=1;
-					LED_ROUGE=1;
-					LED_BLEUE=1;
-					LED_CMUCAM=1;
-					etat_cmucam=CMUCAM_RESET;
-					etat_strategie=ALLER_VERS_CASE_4;
+				if(tempo_s == 0){
+					if(fin_asser()){
+						active_asser(ASSER_AVANCE,consigne_angle);
+						tempo_s++;
+					}
+				}
+				if(tempo_s != 0){
+					if(etat_cmucam == TRACKING_PROCHE){
+						etat_strategie = ALLER_VERS_CASE_4;
+					}
 				}
 				
 				break;
 			case ALLER_VERS_CASE_4:
-				GetDonneesServo();
 				if(get_CC_Gauche() == couleur && get_CC_Droit() == couleur && get_CC_Avant() == couleur){
 					SetServoPArG(HAUT);
 					SetServoPArD(HAUT);
@@ -504,26 +503,92 @@ void main(void){
 				break;
 
 			case PARTIR_CASE_1:
-				consigne_angle = angle;
-				etat_asser =0;
-				asser_actif =1;
+				active_asser(ASSER_TOURNE,0);
 				etat_strategie=PARTIR_CASE_2;
 				break;
+
 			case PARTIR_CASE_2:
-				if(ABSENCE_PION){
-					tempo_s=0;
+				if(fin_asser()){
 					etat_strategie=PARTIR_CASE_3;
+					setCouleur('P');
+					etat_cmucam=INIT;
+					cmucam_active=1;
 				}
 				break;
+
 			case PARTIR_CASE_3:
+				if(etat_cmucam == TRACKING || etat_cmucam == TRACKING_PROCHE){
+					active_asser(ASSER_AVANCE,consigne_angle);
+					if(ABSENCE_PION){
+						etat_strategie=PARTIR_CASE_4;
+					}else{
+						etat_strategie=PARTIR_CASE_5;
+					}
+				}
+				break;
+			case PARTIR_CASE_4:
+				if(!ABSENCE_PION){
+					etat_strategie = PARTIR_CASE_5;
+				}
+				break;
+			case PARTIR_CASE_5:
+				if(ABSENCE_PION){
+					tempo_s = 0;
+					etat_strategie = PARTIR_CASE_6;
+				}
+				break;
+
+			case PARTIR_CASE_6:
 				tempo_s++;
 				if(tempo_s >125){
 					SetServoPArG(BAS);
 					SetServoPArD(BAS);
-					etat_strategie = INIT_1;
-					asser_actif=0;
+					etat_strategie = PION2;
+				}
+				break;
+				
+			case PION2:
+				if(!ABSENCE_PION){
+					tempo_s++;
+					if(tempo_s > 60){  // 0.25s
+						prop_stop();
+						desactive_asser();
+						etat_cmucam=CMUCAM_RESET;
+						etat_strategie=VERS_HAUT_1;
+						
+						LED_OK=1;
+						LED_OK1=1;
+						LED_CMUCAM=1;
+
+						tempo_s=0;
+						SetServoPAv(BAS);
+					}
+				}else{
+					if(etat_cmucam == PERDU){
+						// Redémarrer la caméra et chercher un pion ?
+						// Tourner un peu avant ?
+						//tempo_s=0;
+						//etat_strategie = TEMPO_45;
+					}
+				}
+				break;
+			
+			case VERS_HAUT_1:
+				GetDonneesMoteurs();
+				if(tempo_s==0){
+					// Adapter la consigne de l'angle en fonction de l'orientation
+					// Pour trouver la rotation la plus courte
+					if(couleur == ROUGE){
+						consigne_angle=-1800000;
+					}else{
+						consigne_angle=1800000;
+					}
+					active_asser(ASSER_AVANCE,consigne_angle);
+					tempo_s++;
+				}
+				if(get_CT_AV_G()){
 					prop_stop();
-					
+					etat_strategie = VERS_HAUT_2;
 				}
 				break;
 				
@@ -1155,12 +1220,17 @@ void main(void){
             	}
             	break;
             case TRACKING:
+            case TRACKING_PROCHE:
             	get_erreur_RC();
 	            if(rec_cmucam(chaine)){
 		            if(chaine[0]=='t'){
 		            	chaine_to_figure(chaine,&mFigure);
 				    	if(mFigure.x1!=0 && mFigure.y1!=0){
 				    		int milieu;
+				    		
+				    		if(mFigure.y1 <= 68){
+								etat_cmucam = TRACKING_PROCHE;
+							}
 
 				    		
 				    		asser_actif=1;

@@ -4,7 +4,7 @@
 
 unsigned char envoi_servo;
 unsigned char a_envoyer=0;
-unsigned char CC_droit,CC_gauche,CC_avant;
+unsigned char CC_droit=0,CC_gauche=0,CC_avant=0;
 unsigned char presence_pion;
 
 
