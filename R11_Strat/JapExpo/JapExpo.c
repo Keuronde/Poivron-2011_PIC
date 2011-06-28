@@ -258,6 +258,7 @@ void main(void){
     char DernierEnvoi=0;
 	char couleur;
 	char essai_cmucam;
+	char nb_essai_cmucam;
 	char tempo_cmucam=0;
 	char ignore_pion = 0;
 	unsigned char id_forme;
@@ -370,7 +371,13 @@ void main(void){
             		tempo_s=0;
             	}
 // ### Fin bloque suspect
-            	
+
+				tempo_s++;
+				if(tempo_s > 250){
+					etat_cmucam = CMUCAM_RESET;
+            		etat_strategie=_45DEGRES;
+            		tempo_s=0;
+				}
             	if(etat_cmucam == TRACKING){ // La caméra a activé l'asservissement
             		etat_strategie = ALLER_VERS_PION;
             		tempo_s=0;
@@ -1159,6 +1166,7 @@ void main(void){
                 if(cherche_couleur()){
                     etat_cmucam=RECUP_ID_1;
                     tempo_cmucam=200;
+                    nb_essai_cmucam = 10;
                 }
                 break;
             case RECUP_ID_1:
@@ -1181,7 +1189,8 @@ void main(void){
                 break;
             case TEST_ID:
             	if(mFigure.y1==0 && mFigure.x1==0){
-            		etat_cmucam=RE_RECUP_ID_1;
+					etat_cmucam=RE_RECUP_ID_1;
+					
             	}else{
             		etat_cmucam = ENVOI_ID;
             		id_forme=mFigure.id;
