@@ -272,7 +272,7 @@ void main(void){
 	
     enum etat_cmucam_t etat_cmucam=INIT;
     enum etat_strategie_t etat_strategie=INIT, old_etat_strategie;
-//    enum etat_strategie_t etat_strategie=TEST_ABSENCE_PION_INIT, old_etat_strategie;
+//    enum etat_strategie_t etat_strategie=PARTIR_CASE_1, old_etat_strategie;
     
     
     chaine[0]=0;
@@ -582,17 +582,19 @@ void main(void){
 			
 			case VERS_HAUT_1:
 				GetDonneesMoteurs();
-				if(tempo_s==0){
-					// Adapter la consigne de l'angle en fonction de l'orientation
-					// Pour trouver la rotation la plus courte
-					if(couleur == ROUGE){
-						consigne_angle=-1800000;
-					}else{
-						consigne_angle=1800000;
-					}
-					active_asser(ASSER_AVANCE,consigne_angle);
-					tempo_s++;
+				// Adapter la consigne de l'angle en fonction de l'orientation
+				// Pour trouver la rotation la plus courte
+				if(couleur == ROUGE){
+					consigne_angle=(long)-1800000;
+				}else{
+					consigne_angle=(long)1800000;
 				}
+				active_asser(ASSER_TOURNE,consigne_angle);
+				etat_strategie = VERS_HAUT_2;
+				break;
+				
+			case VERS_HAUT_2:
+				//GetDonneesMoteurs();
 				if(get_CT_AV_G()){
 					prop_stop();
 					etat_strategie = VERS_HAUT_2;
@@ -1517,6 +1519,7 @@ void Init(){
 
 	pap_set_pos(0);
 	transmission_moteur();
+	SetCremaillere(HAUT);
     
    	WMP_init_timer(getTimer());
 	mTimer = getTimer();

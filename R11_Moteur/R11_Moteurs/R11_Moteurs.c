@@ -98,6 +98,7 @@ void main(void){
     char vitesse_cde;
     char acquittement;
     char T_old;
+    int  t_v0;
     
     Init();
     for(index_sonic = 0;index_sonic< 10; index_sonic++){
@@ -105,6 +106,7 @@ void main(void){
         valeur_sonic_proche[index_sonic] = 0;
     }
     T_old = getTemps_cs();
+    t_v0 = getTemps_cs();
 // On allume les LEDs
 
 
@@ -190,7 +192,11 @@ void main(void){
         // Gestion de la vitesse  
         // Vitesse commandées
         if(vitesse_cde){
-            vitesse = 2;
+			if(t_v0 + 100 > getTemps_cs()){	// Pour un départ un douceur, 1s à marche réduite.
+				vitesse = 2;
+			}else{
+				vitesse = 1;
+			}
         }else{
             vitesse = 1;
         }
@@ -223,6 +229,7 @@ void main(void){
                 vitesse = 0;
             }
         }
+        
         // Si le robot est sensé avancer, on ajuste la vitesse
         switch(vitesse){
         case 2:
@@ -239,6 +246,12 @@ void main(void){
             break;
         }
         
+        // Si le robot est à l'arrêt
+        // Soit à cause d'un ordre, soit à cause d'un obstacle
+        // On note l'heure afin de connaître le temps écoulé depuis le dernier arrêt
+        if(get_Sens() == AUCUN || vitesse == 0){
+			t_v0=getTemps_cs();
+		}
         
         
         // Lecture du capteur sonique
