@@ -47,6 +47,10 @@ enum etat_strategie_t {
     PION2,
     VERS_HAUT_1,
     VERS_HAUT_2,
+    VERS_HAUT_3,
+    RECULE_1,
+    VERS_MAISON_1,
+    VERS_MAISON_2,
     SORTIR_CASE,
     EVITEMENT_RECULE,
     TEST_SERVO_1,
@@ -594,10 +598,53 @@ void main(void){
 				break;
 				
 			case VERS_HAUT_2:
-				//GetDonneesMoteurs();
+				if(fin_asser()){
+					active_asser(ASSER_AVANCE,consigne_angle);
+					etat_strategie = VERS_HAUT_3;
+				}
+				break;
+			
+			case VERS_HAUT_3:
 				if(get_CT_AV_G()){
 					prop_stop();
-					etat_strategie = VERS_HAUT_2;
+					pap_set_pos(0);
+					tempo_s = 0;
+					etat_strategie = RECULE_1;
+				}
+				break;
+			
+			case RECULE_1:
+				if(tempo_s ==0){
+					Recule();
+				}
+				tempo_s++;
+				if(tempo_s > 120){
+					prop_stop();
+					tempo_s=0;
+					etat_strategie = VERS_MAISON_1;
+				}
+				break;
+			
+			case VERS_MAISON_1:
+				if(tempo_s == 0){
+					if(couleur == ROUGE){
+						consigne_angle=(long)-3600000;
+					}else{
+						consigne_angle=(long)3600000;
+					}
+					active_asser(ASSER_TOURNE,consigne_angle);
+				}
+				tempo_s++;
+				if(fin_asser()){
+					etat_strategie = VERS_MAISON_2;
+					active_asser(ASSER_AVANCE,consigne_angle);
+				}
+				break;
+				
+			case VERS_MAISON_2:
+				if(get_CT_AV_G()){
+					prop_stop();
+					SetCremaillere(BAS);
 				}
 				break;
 				
@@ -1499,13 +1546,13 @@ void Init(){
     }
 
     // A décommenter pour avoir un WMP stable
-/*    WMP_init_2();
+	WMP_init_2();
    
     while(WMP_calibration()){           // Tant que la calibration est en cours
         while(mTimer == getTimer());
         mTimer = getTimer();
     }
-*/    
+    
     LED_OK1 = 0;
     LED_OK=0;
 	LED_ROUGE=0;
