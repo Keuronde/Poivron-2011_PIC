@@ -618,7 +618,7 @@ void main(void){
 					Recule();
 				}
 				tempo_s++;
-				if(tempo_s > 120){
+				if(tempo_s > 80){
 					prop_stop();
 					tempo_s=0;
 					etat_strategie = VERS_MAISON_1;
@@ -645,6 +645,9 @@ void main(void){
 				if(get_CT_AV_G()){
 					prop_stop();
 					SetCremaillere(BAS);
+				}
+				if(get_capteur_sonique_loin() || get_capteur_sonique_proche()){
+					ignore_contacteur();
 				}
 				break;
 				
@@ -1566,6 +1569,9 @@ void Init(){
 
 	pap_set_pos(0);
 	transmission_moteur();
+	Delay10KTCYx(0);
+	Delay10KTCYx(0);
+	Delay10KTCYx(0);
 	SetCremaillere(HAUT);
     
    	WMP_init_timer(getTimer());

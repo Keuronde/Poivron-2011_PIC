@@ -192,11 +192,7 @@ void main(void){
         // Gestion de la vitesse  
         // Vitesse commandées
         if(vitesse_cde){
-			if(t_v0 + 100 > getTemps_cs()){	// Pour un départ un douceur, 1s à marche réduite.
 				vitesse = 2;
-			}else{
-				vitesse = 1;
-			}
         }else{
             vitesse = 1;
         }
