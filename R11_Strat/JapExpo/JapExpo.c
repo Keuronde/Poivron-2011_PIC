@@ -1374,11 +1374,11 @@ void main(void){
 				}
 				consigne_pap = consigne_pap_P+ (consigne_pap_I / (int)8);
 				// Saturation
-				if(consigne_pap > 90){
-					consigne_pap = 90;
+				if(consigne_pap > PAP_MAX_ROT){
+					consigne_pap = PAP_MAX_ROT;
 				}
-				if(consigne_pap < -90){
-					consigne_pap = -90;
+				if(consigne_pap < PAP_MIN_ROT){
+					consigne_pap = PAP_MIN_ROT;
 				}
 				// Envoie de la commande à la carte moteur
 				pap_set_pos(consigne_pap);
