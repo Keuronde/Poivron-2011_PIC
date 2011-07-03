@@ -7,7 +7,8 @@ SRCS	:=	../JapExpo.c \
             ../../i2c_moteurs/i2c_moteurs.c \
             ../../i2c_servo/i2c_servo.c \
             ../../WMP/WMP.c \
-            ../../CMUcam/cmucam.c
+            ../../CMUcam/cmucam.c \
+            ../../WCC/WCC.c
 
 
 ## Information concernant le compilateur

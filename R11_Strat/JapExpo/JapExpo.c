@@ -6,6 +6,7 @@
 #include "../i2c_moteurs/i2c_moteurs.h"
 #include "../i2c_servo/i2c_servo.h"
 #include "../WMP/WMP.h"
+#include "../WCC/WCC.h"
 #include "../CMUcam/cmucam.h"
 
 /** T Y P E   P R I V E S ****************************************************/
@@ -291,25 +292,21 @@ void main(void){
 
     Init();
 
-	while(nb3ms>0){
+	while(1){
 	    char timer;
 	    int tempo_s;
 	    char i,j;
 
-	    /*********************************
-	    *                                *
-	    * Actualisation de l'orientation *
-	    *                                *
-	    *********************************/
 	    
-	    // Attente que les 4ms précédentes se soient bien écoulées. (A21)
-        
-        while(mTimer == getTimer());
-        // Calculer et récupérer l'angle du gyroscope (A22)
-        mTimer =getTimer(); // On récupère le numéro (0 à 255) du pas de temps pour le gyroscope
-        
-        WMP_calcul(mTimer); // On actualise l'angle
-        angle = WMP_get_Angle(); // Récupérer l'angle du gyrosocpe
+        /***************************
+	    *                          *
+	    * Gestion de la manette    *
+	    *                          *
+	    ***************************/
+	    
+	    
+         WiiClassic_Read();
+         
         
         /**************************
         *                         *
@@ -320,520 +317,6 @@ void main(void){
         
         switch (etat_strategie){
         	case INIT :
-        		GetDonneesServo();
-        		if(get_CC_Gauche() == get_CC_Droit()){
-        			if(get_CC_Gauche() == BLEU || get_CC_Gauche() == ROUGE){
-        				couleur = get_CC_Gauche();
-        				if(couleur==ROUGE){
-        					LED_ROUGE=1;
-        				}else{
-        					LED_BLEUE=1;
-        				}
-        				etat_strategie=INIT_1;
-        			}
-        		}
-        		break;
-        	
-            case INIT_1:
-            	SetCremaillere(HAUT);
-				SetServoPAv(HAUT);
-				SetServoPArG(BAS);
-				SetServoPArD(BAS);
-            	RELAIS=1;
-            	LED_OK=0;
-            	LED_OK1=0;
-            	etat_strategie = SORTIR_DEPART_INIT;
-            	break;
-        	case SORTIR_DEPART_INIT:
-        		active_asser(ASSER_AVANCE,0);
-        		tempo_s=0;
-        		etat_strategie=SORTIR_DEPART;
-        		break;
-        		
-        	case SORTIR_DEPART:
-        		tempo_s++;
-        		if(tempo_s == 300){ // 1200 ms
-					desactive_asser();
-        			prop_stop();
-        			etat_strategie=RECHERCHE_PION_INIT;
-        		}
-        		break;
-
-            case RECHERCHE_PION_INIT:
-            	setCouleur('P');
-				etat_cmucam=INIT;
-            	cmucam_active=1;
-            	tempo_s=0;
-            	etat_strategie=RECHERCHE_PION_ATTENTE;
-            	break;
-            	
-            case RECHERCHE_PION_ATTENTE:
-
-// ### Ce bloque semble bizarre , le robot est à l'arrêt !
-            	if(!ABSENCE_PION){
-            		etat_strategie = ALLER_VERS_PION;
-            		tempo_s=0;
-            	}
-// ### Fin bloque suspect
-
-				tempo_s++;
-				if(tempo_s > 250){
-					etat_cmucam = CMUCAM_RESET;
-            		etat_strategie=_45DEGRES;
-            		tempo_s=0;
-				}
-            	if(etat_cmucam == TRACKING){ // La caméra a activé l'asservissement
-            		etat_strategie = ALLER_VERS_PION;
-            		tempo_s=0;
-            	}
-            	if(etat_cmucam == PERDU){
-            		etat_cmucam = CMUCAM_RESET;
-            		etat_strategie=_45DEGRES;
-            		tempo_s=0;
-            	}
-            	break;
-            	
-            case ALLER_VERS_PION:
-            	
-				if(!ABSENCE_PION){
-					tempo_s++;
-					if(tempo_s > 60){  // 0.25s
-						prop_stop();
-						asser_actif=0;
-						etat_cmucam=CMUCAM_RESET;
-						etat_strategie=TOURNER;
-						
-						LED_OK=1;
-						LED_OK1=1;
-						LED_CMUCAM=1;
-
-						tempo_s=0;
-						SetServoPAv(BAS);
-					}
-				}else{
-					if(etat_cmucam == PERDU){
-						tempo_s=0;
-						etat_strategie = TEMPO_45;
-					}
-				}
-				break;
-				
-			case TEMPO_45:
-				tempo_s++;
-				if(tempo_s > 500){
-					etat_strategie= _45DEGRES;
-				}
-				if(!ABSENCE_PION){
-					etat_strategie = ALLER_VERS_PION;
-					tempo_s=0;
-				}
-				break;
-				
-			case _45DEGRES:
-				if(couleur == ROUGE){
-					consigne_angle = 900000;
-				}else{
-					consigne_angle = -900000;
-				}
-				etat_asser=0;
-				asser_actif=1;
-				etat_strategie=ATTENTE_45DEGRES;
-				tempo_s=0;
-				break;
-
-			case ATTENTE_45DEGRES:
-				tempo_s++;
-				if(tempo_s > 400){
-					prop_stop();
-					asser_actif =0;
-					etat_asser = 0;
-					etat_strategie = RECHERCHE_PION_INIT;
-				}
-				break;
-				
-			case TOURNER:
-				if(tempo_s==0){
-					if(couleur == ROUGE){
-						consigne_angle=1800000;
-					}else{
-						consigne_angle=-1800000;
-					}
-					active_asser(ASSER_TOURNE,consigne_angle);
-					tempo_s++;
-				}
-				
-				if(fin_asser()){
-					prop_stop();
-					etat_strategie=ALLER_VERS_CASE_1;
-					LED_OK=0;
-					LED_OK1=0;
-					LED_CMUCAM=0;
-				}
-				break;
-			case ALLER_VERS_CASE_1:
-				if(couleur == ROUGE){
-					setCouleur('R');
-				}else{
-					setCouleur('B');
-				}
-				etat_cmucam=INIT;
-				cmucam_active=1;
-				etat_strategie=ALLER_VERS_CASE_2;
-
-				break;
-			case ALLER_VERS_CASE_2:
-				if(etat_cmucam==TRACKING){
-					active_asser(ASSER_TOURNE,consigne_angle);
-					etat_strategie=ALLER_VERS_CASE_3;
-					tempo_s=0;
-				}
-				break;
-			case ALLER_VERS_CASE_3:
-				if(tempo_s == 0){
-					if(fin_asser()){
-						active_asser(ASSER_AVANCE,consigne_angle);
-						tempo_s++;
-					}
-				}
-				if(tempo_s != 0){
-					if(etat_cmucam == TRACKING_PROCHE){
-						etat_strategie = ALLER_VERS_CASE_4;
-					}
-				}
-				
-				break;
-			case ALLER_VERS_CASE_4:
-				if(get_CC_Gauche() == couleur && get_CC_Droit() == couleur && get_CC_Avant() == couleur){
-					SetServoPArG(HAUT);
-					SetServoPArD(HAUT);
-					SetServoPAv(HAUT);
-					prop_stop();
-					etat_cmucam=CMUCAM_RESET;
-					etat_strategie=PARTIR_CASE_1;
-				}
-				break;
-
-			case PARTIR_CASE_1:
-				active_asser(ASSER_TOURNE,0);
-				etat_strategie=PARTIR_CASE_2;
-				break;
-
-			case PARTIR_CASE_2:
-				if(fin_asser()){
-					etat_strategie=PARTIR_CASE_3;
-					setCouleur('P');
-					etat_cmucam=INIT;
-					cmucam_active=1;
-				}
-				break;
-
-			case PARTIR_CASE_3:
-				if(etat_cmucam == TRACKING || etat_cmucam == TRACKING_PROCHE){
-					active_asser(ASSER_AVANCE,consigne_angle);
-					if(ABSENCE_PION){
-						etat_strategie=PARTIR_CASE_4;
-					}else{
-						etat_strategie=PARTIR_CASE_5;
-					}
-				}
-				break;
-			case PARTIR_CASE_4:
-				if(!ABSENCE_PION){
-					etat_strategie = PARTIR_CASE_5;
-				}
-				break;
-			case PARTIR_CASE_5:
-				if(ABSENCE_PION){
-					tempo_s = 0;
-					etat_strategie = PARTIR_CASE_6;
-				}
-				break;
-
-			case PARTIR_CASE_6:
-				tempo_s++;
-				if(tempo_s >125){
-					SetServoPArG(BAS);
-					SetServoPArD(BAS);
-					etat_strategie = PION2;
-				}
-				break;
-				
-			case PION2:
-				if(!ABSENCE_PION){
-					tempo_s++;
-					if(tempo_s > 60){  // 0.25s
-						prop_stop();
-						desactive_asser();
-						etat_cmucam=CMUCAM_RESET;
-						etat_strategie=VERS_HAUT_1;
-						
-						LED_OK=1;
-						LED_OK1=1;
-						LED_CMUCAM=1;
-
-						tempo_s=0;
-						SetServoPAv(BAS);
-					}
-				}else{
-					if(etat_cmucam == PERDU){
-						// Redémarrer la caméra et chercher un pion ?
-						// Tourner un peu avant ?
-						//tempo_s=0;
-						//etat_strategie = TEMPO_45;
-					}
-				}
-				break;
-			
-			case VERS_HAUT_1:
-				GetDonneesMoteurs();
-				// Adapter la consigne de l'angle en fonction de l'orientation
-				// Pour trouver la rotation la plus courte
-				if(couleur == ROUGE){
-					consigne_angle=(long)-1800000;
-				}else{
-					consigne_angle=(long)1800000;
-				}
-				active_asser(ASSER_TOURNE,consigne_angle);
-				etat_strategie = VERS_HAUT_2;
-				break;
-				
-			case VERS_HAUT_2:
-				if(fin_asser()){
-					active_asser(ASSER_AVANCE,consigne_angle);
-					etat_strategie = VERS_HAUT_3;
-				}
-				break;
-			
-			case VERS_HAUT_3:
-				if(get_CT_AV_G()){
-					prop_stop();
-					pap_set_pos(0);
-					tempo_s = 0;
-					etat_strategie = RECULE_1;
-				}
-				break;
-			
-			case RECULE_1:
-				if(tempo_s ==0){
-					Recule();
-				}
-				tempo_s++;
-				if(tempo_s > 80){
-					prop_stop();
-					tempo_s=0;
-					etat_strategie = VERS_MAISON_1;
-				}
-				break;
-			
-			case VERS_MAISON_1:
-				if(tempo_s == 0){
-					if(couleur == ROUGE){
-						consigne_angle=(long)-3600000;
-					}else{
-						consigne_angle=(long)3600000;
-					}
-					active_asser(ASSER_TOURNE,consigne_angle);
-				}
-				tempo_s++;
-				if(fin_asser()){
-					etat_strategie = VERS_MAISON_2;
-					active_asser(ASSER_AVANCE,consigne_angle);
-				}
-				break;
-				
-			case VERS_MAISON_2:
-				if(get_CT_AV_G()){
-					prop_stop();
-					SetCremaillere(BAS);
-				}
-				if(get_capteur_sonique_loin() || get_capteur_sonique_proche()){
-					ignore_contacteur();
-				}
-				break;
-				
-			case AVANCE_CASE_1:
-				GetDonneesServo();
-				ignore_pion = 1;
-				if(get_CC_Droit() == get_CC_Gauche()){
-					if(couleur == BLEU){
-						if(get_CC_Droit() ==ROUGE){
-							tempo_s++;
-						}else{
-							tempo_s=0;
-						}
-					}else{
-						if(get_CC_Droit() ==BLEU){
-							tempo_s++;
-						}else{
-							tempo_s=0;
-						}
-					}
-				}else{
-					tempo_s =0;
-				}
-				if(tempo_s > 100){ // 400 ms sur la bonne couleur
-					tempo_s = 0;
-					etat_strategie = AVANCE_CASE_2;
-				}
-				break;
-			case AVANCE_CASE_2:
-				GetDonneesServo();
-				if(get_CC_Droit() == get_CC_Gauche()){
-					if(couleur == get_CC_Droit()){
-						tempo_s++;
-					}else{
-						tempo_s=0;
-					}
-				}else{
-					tempo_s =0;
-				}
-				if(tempo_s > 100){ // 400 ms sur la bonne couleur
-					tempo_s=0;
-					etat_strategie = AVANCE_CASE_3;
-				}
-				break;
-			case AVANCE_CASE_3:
-				GetDonneesServo();
-				if(get_CC_Droit() == get_CC_Gauche()){
-					if(couleur == BLEU){
-						if(get_CC_Droit() ==ROUGE){
-							tempo_s++;
-						}else{
-							tempo_s=0;
-						}
-					}else{
-						if(get_CC_Droit() ==BLEU){
-							tempo_s++;
-						}else{
-							tempo_s=0;
-						}
-					}
-				}else{
-					tempo_s =0;
-				}
-				if(tempo_s > 1){ // avant, un délais de 400 ms sur la bonne couleur (> 100)
-					tempo_s = 0;
-					etat_strategie = POINT_FIXE_1;
-					asser_actif=0;
-					etat_asser=0;
-					ignore_pion = 0;
-					//prop_stop();
-				}
-				break;
-			case POINT_FIXE_1:
-				// Tenir compte de la couleur ### XXX
-				GetDonneesServo();
-				pap_set_pos(170);
-				if(angle > 1200000){ // 60° 
-					prop_stop();
-					etat_strategie = POINT_FIXE_2;
-					tempo_s =0;
-				}/* 	
-				if(cmucam_active==1){
-					// Si on voit un pion, on va vers le pion
-					if(etat_cmucam == TRACKING || etat_cmucam == TRACKING_PROCHE){
-						etat_asser=0;
-						asser_actif=1;
-						etat_strategie = ALLER_VERS_PION;
-					}
-				}*/
-				break;
-			case POINT_FIXE_2:
-				asser_actif=0;
-				if(couleur==ROUGE){
-					pap_set_pos(170);
-				}else{
-					pap_set_pos(-170);
-				}
-				tempo_s = 0;
-				etat_strategie = POINT_FIXE_3;
-				break;
-			case POINT_FIXE_3:
-				tempo_s++;
-				if(tempo_s > 500){
-					tempo_s=0;
-					etat_strategie = POINT_FIXE_4;
-				}
-				break;
-			case POINT_FIXE_4:
-				pap_set_pos(0);
-				etat_cmucam=INIT;
-				cmucam_active=1;
-				etat_strategie = POINT_FIXE_5;
-				break;
-			case POINT_FIXE_5:
-				GetDonneesServo();
-				if(etat_cmucam == TRACKING || etat_cmucam == TRACKING_PROCHE){
-					etat_asser = 0;
-					asser_actif=1;
-					prop_set_vitesse(0);
-					etat_strategie = ALLER_VERS_PION;
-				}
-				break;
-
-
-			case EVITEMENT_RECULE:
-				tempo_s++;
-				Recule();
-				if(tempo_s > 250){
-					etat_strategie= old_etat_strategie;
-				}
-				
-				break;
-			
-		
-			
-			
-			
-			
-			case ALLER_VERS_CASE_5:
-				Avance();
-				if(angle> 1750000){
-					prop_stop();
-				}
-				break;
-				
-			/*	
-			case ALLER_VERS_CASE:
-				GetDonneesServo();
-				if(! cmucam_active){
-					tempo_s++;
-					if(tempo_s>200){
-					LED_OK=1;
-					etat_cmucam=INIT_CASE;
-					cmucam_active=1;
-					}
-				}
-				if(etat_cmucam==TRACKING){
-					LED_OK1=1;
-					etat_asser=0;
-					asser_actif=1;
-				}
-				if(etat_cmucam==TRACKING_PROCHE){
-					LED_CMUCAM=1;
-					if(couleur == BLEU){
-						if(get_CC_Droit() == BLEU && get_CC_Gauche() == BLEU ){
-							prop_stop();
-							asser_actif=0;
-							etat_cmucam=CMUCAM_RESET;							
-							etat_strategie=SORTIR_CASE;
-						}
-					}
-					if(couleur == ROUGE){
-						if(get_CC_Droit() == ROUGE && get_CC_Gauche() == ROUGE ){
-							prop_stop();
-							asser_actif=0;
-							etat_cmucam=CMUCAM_RESET;
-							etat_strategie=SORTIR_CASE;							
-						}
-					}
-				}
-				break;*/
-			case SORTIR_CASE:
-				GetDonneesServo();
-				SetServoPArG(HAUT);
-				SetServoPArD(HAUT);
-				RELAIS=0;
 				break;
             case TEST_SERVO_1:
                 GetDonneesServo();
@@ -1490,7 +973,7 @@ void main(void){
 
 
 void Init(){
-
+// Pas d'init du WMP pour l'instant, on ne travaille qu'avec la manette...
     init_io();
     init_i2c(); // Active les interruptions
     
@@ -1520,14 +1003,6 @@ void Init(){
 
 
     
-    // WMP
-	if(WMP_init()){
-        LED_OK = 1;
-    }else{
-        LED_OK = 0;
-    }
-    Delay10KTCYx(0);
-    Delay10KTCYx(0);
     
     // Notre compteur qui va nous rythmer notre robot sur un cycle de 3 ms.
     // Les interruptions doivent être activées pour que le compteur foncitonne "tout seul"
@@ -1540,21 +1015,7 @@ void Init(){
 	WriteTimer0(65535 - 48000); // dt * 4ms
     
 
-    // SUITE WMP
-    LED_OK1 = 0;
-    mTimer = getTimer();
-    while(WMP_calibration()){           // Tant que la calibration est en cours
-        while(mTimer == getTimer());
-        mTimer = getTimer();
-    }
-
-    // A décommenter pour avoir un WMP stable
-	WMP_init_2();
-   
-    while(WMP_calibration()){           // Tant que la calibration est en cours
-        while(mTimer == getTimer());
-        mTimer = getTimer();
-    }
+    
     
     LED_OK1 = 0;
     LED_OK=0;
@@ -1574,7 +1035,6 @@ void Init(){
 	Delay10KTCYx(0);
 	SetCremaillere(HAUT);
     
-   	WMP_init_timer(getTimer());
 	mTimer = getTimer();
 }
 
