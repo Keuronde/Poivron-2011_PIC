@@ -22,7 +22,7 @@ OBJS	:=	$(SRCS:.c=.o)
 all	:	$(BIN).hex
 
 flash: all
-		sudo fsusb $(BIN).hex
+		gksudo fsusb $(BIN).hex
 
 
 %.hex	:	$(OBJS)

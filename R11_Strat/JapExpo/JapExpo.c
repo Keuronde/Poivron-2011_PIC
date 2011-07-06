@@ -154,7 +154,7 @@ char fin_asser(void);
 #define DEBUG_CC_GAUCHE 0
 #define DEBUG_CC_DROIT 0
 #define DEBUG_CC_AVANT 0
-#define DEBUG_CC_DEUX 1
+#define DEBUG_CC_DEUX 0
 #define DEBUG_WMP 0
 
 
@@ -297,17 +297,21 @@ void main(void){
 	    int tempo_s;
 	    char i,j;
 
-	    
+	    while(mTimer == getTimer());
         /***************************
 	    *                          *
 	    * Gestion de la manette    *
 	    *                          *
 	    ***************************/
 	    
-	    
-         WiiClassic_Read();
+         if(WiiClassic_Read()){
          
-        
+         if(WCC_get_A()){
+			 LED_CMUCAM = 1;
+		 }else{
+			 LED_CMUCAM = 0;
+		 }
+			}
         /**************************
         *                         *
         * Gestion de la stratégie *
@@ -995,13 +999,17 @@ void Init(){
     Delay10KTCYx(0);
     LED_OK1 = 0;
     
-	LED_ROUGE=1;
+	LED_ROUGE=0;
 	
     LED_OK1 = 0;
 
     CMUcam_Init();
 
-
+	if(!WiiClassic_Init()){
+		//LED_ROUGE=0;
+	}else{
+		LED_ROUGE=0;
+	}
     
     
     // Notre compteur qui va nous rythmer notre robot sur un cycle de 3 ms.
@@ -1019,7 +1027,7 @@ void Init(){
     
     LED_OK1 = 0;
     LED_OK=0;
-	LED_ROUGE=0;
+	
 	LED_CMUCAM=1;
 	
 

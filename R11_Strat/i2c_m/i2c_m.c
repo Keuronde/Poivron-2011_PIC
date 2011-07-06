@@ -131,7 +131,7 @@ void gestion_i2c(){
         switch(etat_i2c){
           case I2C_START:     
           case I2C_ENV_ADRESSE:
-            SSPBUF = ((i2c_slave_adresse << 1) | 0);
+            SSPBUF = ((i2c_slave_adresse << 1) & 0xFE);
             data_index = 0;
             etat_i2c = I2C_ENV_DONNEE;
             nacq = 1;
@@ -191,9 +191,9 @@ void gestion_i2c(){
             break;
                         
           case I2C_REC_ADRESSE:
-            SSPBUF = (i2c_slave_adresse << 1 | 1);
+            SSPBUF = (i2c_slave_adresse << 1 | 0x01);
             data_index=0;
-            nacq = 1;
+            nacq = 1; 
             etat_i2c = I2C_REC_DONNEE;
             break;
                         
