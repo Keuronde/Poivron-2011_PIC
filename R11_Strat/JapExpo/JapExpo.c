@@ -304,14 +304,14 @@ void main(void){
 	    *                          *
 	    ***************************/
 	    
-         if(WiiClassic_Read()){
-         
-         if(WCC_get_A()){
-			 LED_CMUCAM = 1;
-		 }else{
-			 LED_CMUCAM = 0;
-		 }
+		if(WiiClassic_Read()){
+
+			if(WCC_get_A()){
+				LED_CMUCAM = 1;
+			}else{
+				LED_CMUCAM = 0;
 			}
+		}
         /**************************
         *                         *
         * Gestion de la stratégie *

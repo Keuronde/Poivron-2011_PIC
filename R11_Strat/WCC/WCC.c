@@ -45,80 +45,19 @@ char WiiClassicCom_Read(unsigned char *reception){
     unsigned char index = 0;
     unsigned char WCC_read[] = {0x00};
     
+    transmission_i2c(0x52,1,0,WCC_read);
     
-    
-    StartI2C();
-    IdleI2C();
-    putcI2C(0xA4);
-    IdleI2C();
-    
-    if(SSPCON2bits.ACKSTAT){
-		LED_ROUGE=0;
-		LED_BLEUE=1;
-		StopI2C();
-		IdleI2C();
-		return 0;
-	}else{
-		LED_BLEUE=0;
-	}
-    putcI2C(0x00);
-    IdleI2C();
-    StopI2C();
-    IdleI2C();
     Delay1KTCYx(10);
     
-    
-    StartI2C();
-    IdleI2C();
-    putcI2C(0xA5);
-    if(SSPCON2bits.ACKSTAT){
-		LED_ROUGE=1;
-		StopI2C();
-		IdleI2C();
-		return 0;
-	}else{
-		LED_ROUGE=0;
-	}
-    IdleI2C();
-    getsI2C(reception,6);
-    IdleI2C();
-    StopI2C();
-    IdleI2C();
-    
-    
-/*
-    if(transmission_i2c(0x52,1,6,WCC_read)){
+    if(transmission_i2c(0x52,0,6,WCC_read)){
 		while(i2c_en_cours());
 		if(!get_erreur_i2c()){
 			get_i2c_data(reception);
 
 			return 1;
 		}
-		if(get_erreur_i2c() == I2C_REC_DONNEE+1){
-			LED_BLEUE=1;
-		}else{
-			LED_BLEUE=0;
-		}
-		if (get_erreur_i2c() == I2C_ENV_DONNEE+1){
-			LED_ROUGE=1;
-		}else{
-			LED_ROUGE=0;
-		}
-		
     }
-	return 0;*/
-    /*
-    Wire.begin();
-    Wire.beginTransmission(0x52);
-    Wire.send(0x00);
-    Wire.endTransmission();
-    delay(3);
-    Wire.requestFrom(0x52,6);
-    while (Wire.available ()) {
-      reception[index]=Wire.receive();
-      index++;
-    } */
-    return 1;
+	return 0;
 }
 
 // Fin bibliothèque WiiClassicCom

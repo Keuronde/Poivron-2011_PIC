@@ -48,8 +48,12 @@ char transmission_i2c(char _adresse, char _nb_env, char _nb_rec, unsigned char *
     if(etat_i2c != I2C_LIBRE){
         return 0;
     }
-    etat_i2c = I2C_START;
-
+    if(_nb_env !=0){
+	    // Il faudra envoyer l'adresse
+		etat_i2c = I2C_ENV_ADRESSE;
+	}else{
+		etat_i2c = I2C_REC_ADRESSE;
+	}
 // On dit qu'il n'y a pas d'erreur 
     erreur_i2c=0;
 
@@ -62,8 +66,7 @@ char transmission_i2c(char _adresse, char _nb_env, char _nb_rec, unsigned char *
     // Envoyer un bit de début
     SSPCON2bits.SEN = 1; // 0b 0000 0001
     
-    // Il faudra envoyer l'adresse
-    etat_i2c = I2C_ENV_ADRESSE;
+
 
 
     return 1;
