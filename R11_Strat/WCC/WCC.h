@@ -3,12 +3,12 @@
 
 
 // Fonction d'acces aux boutons
-char WCC_get_DX(void);
-char WCC_get_DY(void);
-char WCC_get_GX(void);
-char WCC_get_GY(void);
-unsigned char WCC_get_L(void);
-unsigned char WCC_get_R(void);
+char WCC_get_DX(void); // entre -32 et 32
+char WCC_get_DY(void); // entre -32 et 32
+char WCC_get_GX(void); // entre -16 et 16
+char WCC_get_GY(void); // entre -16 et 16
+unsigned char WCC_get_L(void); // entre 0 et 31
+unsigned char WCC_get_R(void); // entre 0 et 31
 unsigned char WCC_get_haut(void);
 unsigned char WCC_get_bas(void);
 unsigned char WCC_get_gauche(void);

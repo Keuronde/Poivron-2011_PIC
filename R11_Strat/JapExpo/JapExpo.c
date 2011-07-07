@@ -116,6 +116,14 @@ enum etat_asser_t {
 	FIN_ASSER
 };
 
+enum etat_poussoirs_t {
+	INIT=0,
+	BAISSES,
+	LEVES_AVANT_PION,
+	LEVES_SUR_PION,
+	LEVES_APRES_PION,
+};
+
 
 
 /** V A R I A B L E S ********************************************************/
@@ -248,6 +256,7 @@ void main(void){
     char etat =0;
     
     char tempo=0;
+    char tempo_p=0;
     char cmucam_active=0;
     
     char sens =1;
@@ -256,6 +265,8 @@ void main(void){
     long _5degres = 100000;
     long _3degres =  60000;
     long angle;
+    int pos_pap_offset=0;
+    int pos_pap_offset_new=0;
     
     int consigne_pap=0;
     int consigne_pap_I=0;
@@ -276,6 +287,7 @@ void main(void){
     
 	
     enum etat_cmucam_t etat_cmucam=INIT;
+    enum etat_poussoirs_t etat_poussoirs=INIT;
     enum etat_strategie_t etat_strategie=INIT, old_etat_strategie;
 //    enum etat_strategie_t etat_strategie=PARTIR_CASE_1, old_etat_strategie;
     
@@ -311,7 +323,106 @@ void main(void){
 			}else{
 				LED_CMUCAM = 0;
 			}
+			
+			// Moteur propulsion
+			if(WCC_get_GY() >= -2 && WCC_get_GY() <= 2){
+				prop_stop();
+			}else if(WCC_get_GY() > 0){
+				Avance();
+				if(WCC_get_GY() > 8){
+					prop_set_vitesse(1);
+				}else{
+					prop_set_vitesse(0);
+				}
+			}else if(WCC_get_GY() < 0){
+				Recule();
+				if(WCC_get_GY() < -8){
+					prop_set_vitesse(1);
+				}else{
+					prop_set_vitesse(0);
+				}
+			}
+			
+			// Moteur pas à pas
+			{
+				int pos_pap;
+				pos_pap = (int)WCC_get_GX() * (int)8;
+				if( pos_pap > PAP_MAX_ROT ){
+					pos_pap = PAP_MAX_ROT;
+				}
+				
+				if(WCC_get_ZL()){
+					pos_pap_offset_new = pos_pap  + pos_pap_offset;
+				}
+				if(!WCC_get_ZL()){
+					pos_pap_offset = pos_pap_offset_new;
+				}
+				pap_set_pos(pos_pap + pos_pap_offset);
+			}
+			
+			// Poussoirs
+			if(WCC_get_B()){
+				etat_poussoirs = LEVES_AVANT_PION;
+			}
+			
+			// Crémaillère
+			if(WCC_get_Y()){
+				SetCremaillere(BAS);
+			}
+			if(WCC_get_X()){
+				SetCremaillere(HAUT);
+			}
+			
+			
+			
 		}
+		
+		/************************
+        *                       *
+        * Gestion des poussoirs *
+        *                       *
+        ************************/
+        
+        switch (etat_poussoirs){
+			case INIT:
+				SetServoPArD(BAS);
+				SetServoPArG(BAS);
+				SetServoPAv(HAUT);
+				if(!ABSENCE_PION){
+					etat_poussoirs=BAISSES;
+				}
+				break;
+			case BAISSES:
+				SetServoPArD(BAS);
+				SetServoPArG(BAS);
+				SetServoPAv(BAS);
+				break;
+			case LEVES_AVANT_PION:
+				SetServoPArD(HAUT);
+				SetServoPArG(HAUT);
+				SetServoPAv(HAUT);
+				if(!ABSENCE_PION){
+					etat_poussoirs=LEVES_SUR_PION;
+				}
+				break;
+			case LEVES_SUR_PION:
+				SetServoPArD(HAUT);
+				SetServoPArG(HAUT);
+				SetServoPAv(HAUT);
+				if(ABSENCE_PION){
+					etat_poussoirs=LEVES_APRES_PION;
+					tempo_p=250;
+				}
+				break;	
+			case LEVES_APRES_PION:
+				tempo_p--;
+				if(tempo_p == 0){
+					etat_poussoirs=INIT;
+					tempo_p=0;
+				}
+				break;
+		}
+		
         /**************************
         *                         *
         * Gestion de la stratégie *
@@ -1038,11 +1149,19 @@ void Init(){
 
 	pap_set_pos(0);
 	transmission_moteur();
+	
 	Delay10KTCYx(0);
-	Delay10KTCYx(0);
-	Delay10KTCYx(0);
+	
+	SetServoPArD(BAS);
+	SetServoPArG(BAS);
+	SetServoPAv(HAUT);
 	SetCremaillere(HAUT);
-    
+	transmission_servo();
+	
+	Delay10KTCYx(0);
+	Delay10KTCYx(0);
+	
+    desactive_asser();
 	mTimer = getTimer();
 }
 
